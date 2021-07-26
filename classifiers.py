@@ -19,7 +19,7 @@ def compute_accuracy_metrics(y_test, y_pred):
     fscore = (2 * precision * recall) / (precision + recall)
     fpr = fp / (fp + tn)
     fnr = fn / (fn + tp)
-    return round(accuracy, 4), round(precision, 4), round(recall, 4), round(fscore, 4), round(fpr, 4), round(fnr, 4)
+    return accuracy, precision, recall, fscore, fpr, fnr
 
 
 def scale_data(x_train, x_test):
@@ -100,4 +100,3 @@ def linear_discriminat_analysis(x_train, x_test, y_train, y_test):
     y_pred = lda_model.predict(x_test)
     y_pred_tr = lda_model.predict(x_train)
     return compute_accuracy_metrics(y_train, y_pred_tr), compute_accuracy_metrics(y_test, y_pred)
-

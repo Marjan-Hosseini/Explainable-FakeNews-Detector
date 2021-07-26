@@ -8,6 +8,14 @@ import seaborn as sns
 import pickle as pkl
 import matplotlib.gridspec as gridspec
 from wordcloud import WordCloud
+import matplotlib.pyplot as plt
+from matplotlib.patches import Circle, RegularPolygon
+from matplotlib.path import Path
+from matplotlib.projections.polar import PolarAxes
+from matplotlib.projections import register_projection
+from matplotlib.spines import Spine
+from matplotlib.transforms import Affine2D
+import gensim
 
 
 def plot_history_independent(top_folder, plots_path, dataset_name):
@@ -889,3 +897,638 @@ def plot_WordClouds_covid(data_df_all, main_folder):
     plt.savefig(main_folder + '/WorldCloud_covid.png')
     plt.savefig(main_folder + '/WorldCloud_covid.pdf')
 
+
+def make_acc_prec_fscore_lines(isot_file, covid_file, twitter_file, classifier_name, metric, decimal_format):
+
+    block_df = isot_file[((isot_file["Classifier"]==classifier_name) & (isot_file["Metric"]==metric))]
+    vae_tr = str(format(block_df[(block_df['Feature'] == 'VAE')&(block_df['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    vae_te = str(format(block_df[(block_df['Feature'] == 'VAE')&(block_df['Dataset'] == 'Test')]['Value'].values[0], decimal_format))
+    lda_tr = str(format(block_df[(block_df['Feature'] == 'LDA')&(block_df['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    lda_te = str(format(block_df[(block_df['Feature'] == 'LDA')&(block_df['Dataset'] == 'Test')]['Value'].values[0], decimal_format))
+    lvae_tr = str(format(block_df[(block_df['Feature'] == 'VAE + LDA')&(block_df['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    lvae_te = str(format(block_df[(block_df['Feature'] == 'VAE + LDA')&(block_df['Dataset'] == 'Test')]['Value'].values[0], decimal_format))
+
+    block_df_cov = covid_file[((covid_file["Classifier"]==classifier_name) & (covid_file["Metric"]==metric))]
+    vae_tr_cov = str(format(block_df_cov[(block_df_cov['Feature'] == 'VAE')&(block_df_cov['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    vae_te_cov = str(format(block_df_cov[(block_df_cov['Feature'] == 'VAE')&(block_df_cov['Dataset'] == 'Test')]['Value'].values[0], decimal_format))
+    lda_tr_cov = str(format(block_df_cov[(block_df_cov['Feature'] == 'LDA')&(block_df_cov['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    lda_te_cov = str(format(block_df_cov[(block_df_cov['Feature'] == 'LDA')&(block_df_cov['Dataset'] == 'Test')]['Value'].values[0], decimal_format))
+    lvae_tr_cov = str(format(block_df_cov[(block_df_cov['Feature'] == 'VAE + LDA')&(block_df_cov['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    lvae_te_cov = str(format(block_df_cov[(block_df_cov['Feature'] == 'VAE + LDA')&(block_df_cov['Dataset'] == 'Test')]['Value'].values[0], decimal_format))
+
+    block_df_twi = twitter_file[((twitter_file["Classifier"]==classifier_name) & (twitter_file["Metric"]==metric))]
+    vae_tr_twi = str(format(block_df_twi[(block_df_twi['Feature'] == 'VAE')&(block_df_twi['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    vae_te_twi = str(format(block_df_twi[(block_df_twi['Feature'] == 'VAE')&(block_df_twi['Dataset'] == 'Test')]['Value'].values[0], decimal_format))
+    lda_tr_twi = str(format(block_df_twi[(block_df_twi['Feature'] == 'LDA')&(block_df_twi['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    lda_te_twi = str(format(block_df_twi[(block_df_twi['Feature'] == 'LDA')&(block_df_twi['Dataset'] == 'Test')]['Value'].values[0], decimal_format))
+    lvae_tr_twi = str(format(block_df_twi[(block_df_twi['Feature'] == 'VAE + LDA')&(block_df_twi['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    lvae_te_twi = str(format(block_df_twi[(block_df_twi['Feature'] == 'VAE + LDA')&(block_df_twi['Dataset'] == 'Test')]['Value'].values[0], decimal_format))
+
+    acc_pre_line = '\\multicolumn{1}{|l|}{} & Acc. & '
+    prec_pre_line = '\\multicolumn{1}{|l|}{} & Prec. & '
+    fscore_pre_line = '\\multicolumn{1}{|l|}{} & F-Sc. & '
+
+    txt = '\\multicolumn{1}{l}{' +vae_te+ '} &\\multicolumn{1}{l}{' + lda_te + '} &\\multicolumn{1}{l|}{' +lvae_te+ '} & ' \
+          +vae_te_cov+ ' & ' +lda_te_cov + ' & ' +lvae_te_cov + ' & ' + vae_te_twi+ ' & ' +lda_te_twi+ ' & ' + lvae_te_twi+ ' \\\\'
+
+    if metric == 'Accuracy':
+        line = acc_pre_line + txt + '\n'
+
+    elif metric == 'Precision':
+        line = prec_pre_line + txt + '\n'
+
+    elif metric == 'F-score':
+        line = fscore_pre_line + txt + '\n'
+
+    else:
+        line = 'error'
+    print(line)
+    return line
+
+
+def make_recall_lines(isot_file, covid_file, twitter_file, classifier_name, decimal_format):
+
+    block_df = isot_file[((isot_file["Classifier"]==classifier_name) & (isot_file["Metric"]=='Recall'))]
+    vae_tr = str(format(block_df[(block_df['Feature'] == 'VAE')&(block_df['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    vae_te = str(format(block_df[(block_df['Feature'] == 'VAE')&(block_df['Dataset'] == 'Test')]['Value'].values[0], decimal_format))
+    lda_tr = str(format(block_df[(block_df['Feature'] == 'LDA')&(block_df['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    lda_te = str(format(block_df[(block_df['Feature'] == 'LDA')&(block_df['Dataset'] == 'Test')]['Value'].values[0], decimal_format))
+    lvae_tr = str(format(block_df[(block_df['Feature'] == 'VAE + LDA')&(block_df['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    lvae_te = str(format(block_df[(block_df['Feature'] == 'VAE + LDA')&(block_df['Dataset'] == 'Test')]['Value'].values[0], decimal_format))
+
+    block_df_cov = covid_file[((covid_file["Classifier"]==classifier_name) & (covid_file["Metric"]=='Recall'))]
+    vae_tr_cov = str(format(block_df_cov[(block_df_cov['Feature'] == 'VAE')&(block_df_cov['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    vae_te_cov = str(format(block_df_cov[(block_df_cov['Feature'] == 'VAE')&(block_df_cov['Dataset'] == 'Test')]['Value'].values[0], decimal_format))
+    lda_tr_cov = str(format(block_df_cov[(block_df_cov['Feature'] == 'LDA')&(block_df_cov['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    lda_te_cov = str(format(block_df_cov[(block_df_cov['Feature'] == 'LDA')&(block_df_cov['Dataset'] == 'Test')]['Value'].values[0], decimal_format))
+    lvae_tr_cov = str(format(block_df_cov[(block_df_cov['Feature'] == 'VAE + LDA')&(block_df_cov['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    lvae_te_cov = str(format(block_df_cov[(block_df_cov['Feature'] == 'VAE + LDA')&(block_df_cov['Dataset'] == 'Test')]['Value'].values[0], decimal_format))
+
+    block_df_twi = twitter_file[((twitter_file["Classifier"]==classifier_name) & (twitter_file["Metric"]=='Recall'))]
+    vae_tr_twi = str(format(block_df_twi[(block_df_twi['Feature'] == 'VAE')&(block_df_twi['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    vae_te_twi = str(format(block_df_twi[(block_df_twi['Feature'] == 'VAE')&(block_df_twi['Dataset'] == 'Test')]['Value'].values[0], decimal_format))
+    lda_tr_twi = str(format(block_df_twi[(block_df_twi['Feature'] == 'LDA')&(block_df_twi['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    lda_te_twi = str(format(block_df_twi[(block_df_twi['Feature'] == 'LDA')&(block_df_twi['Dataset'] == 'Test')]['Value'].values[0], decimal_format))
+    lvae_tr_twi = str(format(block_df_twi[(block_df_twi['Feature'] == 'VAE + LDA')&(block_df_twi['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    lvae_te_twi = str(format(block_df_twi[(block_df_twi['Feature'] == 'VAE + LDA')&(block_df_twi['Dataset'] == 'Test')]['Value'].values[0], decimal_format))
+
+    if classifier_name == 'SVM_nonlinear' or classifier_name == 'SVM_linear':
+        rec_pre_line = '\\multicolumn{1}{|l|}{\\multirow{-2}{*}{SVM}} & Rec. & '
+
+    elif classifier_name == 'Logistic Regression':
+        rec_pre_line = '\\multicolumn{1}{|l|}{\\multirow{-2}{*}{LR}} & Rec. & '
+
+    elif classifier_name == 'Random Forest':
+        rec_pre_line = '\\multicolumn{1}{|l|}{\\multirow{-2}{*}{RF}} & Rec. & '
+
+    elif classifier_name == 'Naive Bayes':
+        rec_pre_line = '\\multicolumn{1}{|l|}{\\multirow{-2}{*}{NB}} & Rec. & '
+
+    elif classifier_name == 'MLP':
+        rec_pre_line = '\\multicolumn{1}{|l|}{\\multirow{-2}{*}{MLP}} & Rec. & '
+
+    elif classifier_name == 'KNN (K = 3)':
+        rec_pre_line = '\\multicolumn{1}{|l|}{\\multirow{-2}{*}{KNN}} & Rec. & '
+    else:
+        rec_pre_line = 'Error'
+
+    txt =  vae_te + ' & ' + lda_te+ ' & ' +lvae_te+' & ' +vae_te_cov+ ' & '  + lda_te_cov+' & ' + lvae_te_cov +\
+          ' & ' +vae_te_twi+ ' & ' +lda_te_twi+ ' & ' +lvae_te_twi+ ' \\\\'
+
+    line = rec_pre_line + txt + '\n'
+
+    print(line)
+    return line
+
+
+def make_fscore_lines(isot_file, covid_file, twitter_file, classifier_name, decimal_format):
+    block_df = isot_file[((isot_file["Classifier"] == classifier_name) & (isot_file["Metric"] == 'F-score'))]
+    vae_tr = str(
+        format(block_df[(block_df['Feature'] == 'VAE') & (block_df['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    vae_te = str(
+        format(block_df[(block_df['Feature'] == 'VAE') & (block_df['Dataset'] == 'Test')]['Value'].values[0], decimal_format))
+    lda_tr = str(
+        format(block_df[(block_df['Feature'] == 'LDA') & (block_df['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    lda_te = str(
+        format(block_df[(block_df['Feature'] == 'LDA') & (block_df['Dataset'] == 'Test')]['Value'].values[0], decimal_format))
+    lvae_tr = str(
+        format(block_df[(block_df['Feature'] == 'VAE + LDA') & (block_df['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    lvae_te = str(
+        format(block_df[(block_df['Feature'] == 'VAE + LDA') & (block_df['Dataset'] == 'Test')]['Value'].values[0], decimal_format))
+
+    block_df_cov = covid_file[((covid_file["Classifier"] == classifier_name) & (covid_file["Metric"] == 'F-score'))]
+    vae_tr_cov = str(format(
+        block_df_cov[(block_df_cov['Feature'] == 'VAE') & (block_df_cov['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    vae_te_cov = str(
+        format(block_df_cov[(block_df_cov['Feature'] == 'VAE') & (block_df_cov['Dataset'] == 'Test')]['Value'].values[0],
+              decimal_format))
+    lda_tr_cov = str(format(
+        block_df_cov[(block_df_cov['Feature'] == 'LDA') & (block_df_cov['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    lda_te_cov = str(
+        format(block_df_cov[(block_df_cov['Feature'] == 'LDA') & (block_df_cov['Dataset'] == 'Test')]['Value'].values[0],
+              decimal_format))
+    lvae_tr_cov = str(format(
+        block_df_cov[(block_df_cov['Feature'] == 'VAE + LDA') & (block_df_cov['Dataset'] == 'Train')]['Value'].values[
+            0], decimal_format))
+    lvae_te_cov = str(format(
+        block_df_cov[(block_df_cov['Feature'] == 'VAE + LDA') & (block_df_cov['Dataset'] == 'Test')]['Value'].values[0],
+        decimal_format))
+
+    block_df_twi = twitter_file[
+        ((twitter_file["Classifier"] == classifier_name) & (twitter_file["Metric"] == 'F-score'))]
+    vae_tr_twi = str(format(
+        block_df_twi[(block_df_twi['Feature'] == 'VAE') & (block_df_twi['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    vae_te_twi = str(
+        format(block_df_twi[(block_df_twi['Feature'] == 'VAE') & (block_df_twi['Dataset'] == 'Test')]['Value'].values[0],
+              decimal_format))
+    lda_tr_twi = str(format(
+        block_df_twi[(block_df_twi['Feature'] == 'LDA') & (block_df_twi['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    lda_te_twi = str(
+        format(block_df_twi[(block_df_twi['Feature'] == 'LDA') & (block_df_twi['Dataset'] == 'Test')]['Value'].values[0],
+              decimal_format))
+    lvae_tr_twi = str(format(
+        block_df_twi[(block_df_twi['Feature'] == 'VAE + LDA') & (block_df_twi['Dataset'] == 'Train')]['Value'].values[
+            0], decimal_format))
+    lvae_te_twi = str(format(
+        block_df_twi[(block_df_twi['Feature'] == 'VAE + LDA') & (block_df_twi['Dataset'] == 'Test')]['Value'].values[0],
+        decimal_format))
+
+    fscore_pre_line = '\multicolumn{1}{|l|}{} & F-Sc. &'
+
+    txt =  vae_te +  ' & ' +  lda_te + ' & ' +  lvae_te +  ' & ' + vae_te_cov +  ' & ' +  lda_te_cov + ' & ' +  lvae_te_cov  + \
+          ' & '  + vae_te_twi +  ' & ' + lda_te_twi + ' & ' + lvae_te_twi + ' \\\\'
+
+    line = fscore_pre_line + txt + ' \\hline \n'
+
+    print(line)
+    return line
+
+
+def make_fpr_lines(isot_file, covid_file, twitter_file, classifier_name, decimal_format):
+
+    block_df = isot_file[((isot_file["Classifier"]==classifier_name) & (isot_file["Metric"]=='FPR'))]
+    vae_tr = str(format(block_df[(block_df['Feature'] == 'VAE')&(block_df['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    vae_te = str(format(block_df[(block_df['Feature'] == 'VAE')&(block_df['Dataset'] == 'Test')]['Value'].values[0], decimal_format))
+    lda_tr = str(format(block_df[(block_df['Feature'] == 'LDA')&(block_df['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    lda_te = str(format(block_df[(block_df['Feature'] == 'LDA')&(block_df['Dataset'] == 'Test')]['Value'].values[0], decimal_format))
+    lvae_tr = str(format(block_df[(block_df['Feature'] == 'VAE + LDA')&(block_df['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    lvae_te = str(format(block_df[(block_df['Feature'] == 'VAE + LDA')&(block_df['Dataset'] == 'Test')]['Value'].values[0], decimal_format))
+
+    block_df_cov = covid_file[((covid_file["Classifier"]==classifier_name) & (covid_file["Metric"]=='FPR'))]
+    vae_tr_cov = str(format(block_df_cov[(block_df_cov['Feature'] == 'VAE')&(block_df_cov['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    vae_te_cov = str(format(block_df_cov[(block_df_cov['Feature'] == 'VAE')&(block_df_cov['Dataset'] == 'Test')]['Value'].values[0], decimal_format))
+    lda_tr_cov = str(format(block_df_cov[(block_df_cov['Feature'] == 'LDA')&(block_df_cov['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    lda_te_cov = str(format(block_df_cov[(block_df_cov['Feature'] == 'LDA')&(block_df_cov['Dataset'] == 'Test')]['Value'].values[0], decimal_format))
+    lvae_tr_cov = str(format(block_df_cov[(block_df_cov['Feature'] == 'VAE + LDA')&(block_df_cov['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    lvae_te_cov = str(format(block_df_cov[(block_df_cov['Feature'] == 'VAE + LDA')&(block_df_cov['Dataset'] == 'Test')]['Value'].values[0], decimal_format))
+
+    block_df_twi = twitter_file[((twitter_file["Classifier"]==classifier_name) & (twitter_file["Metric"]=='FPR'))]
+    vae_tr_twi = str(format(block_df_twi[(block_df_twi['Feature'] == 'VAE')&(block_df_twi['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    vae_te_twi = str(format(block_df_twi[(block_df_twi['Feature'] == 'VAE')&(block_df_twi['Dataset'] == 'Test')]['Value'].values[0], decimal_format))
+    lda_tr_twi = str(format(block_df_twi[(block_df_twi['Feature'] == 'LDA')&(block_df_twi['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    lda_te_twi = str(format(block_df_twi[(block_df_twi['Feature'] == 'LDA')&(block_df_twi['Dataset'] == 'Test')]['Value'].values[0], decimal_format))
+    lvae_tr_twi = str(format(block_df_twi[(block_df_twi['Feature'] == 'VAE + LDA')&(block_df_twi['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    lvae_te_twi = str(format(block_df_twi[(block_df_twi['Feature'] == 'VAE + LDA')&(block_df_twi['Dataset'] == 'Test')]['Value'].values[0], decimal_format))
+
+    if classifier_name == 'SVM_nonlinear' or classifier_name == 'SVM_linear':
+        fpr_pre_line = '\\multicolumn{1}{|l|}{\\multirow{-2}{*}{SVM}} & FPR & '
+
+    elif classifier_name == 'Logistic Regression':
+        fpr_pre_line = '\\multicolumn{1}{|l|}{\\multirow{-2}{*}{LR}} & FPR & '
+
+    elif classifier_name == 'Random Forest':
+        fpr_pre_line = '\\multicolumn{1}{|l|}{\\multirow{-2}{*}{RF}} & FPR & '
+
+    elif classifier_name == 'Naive Bayes':
+        fpr_pre_line = '\\multicolumn{1}{|l|}{\\multirow{-2}{*}{NB}} & FPR & '
+
+    elif classifier_name == 'MLP':
+        fpr_pre_line = '\\multicolumn{1}{|l|}{\\multirow{-2}{*}{MLP}} & FPR & '
+
+    elif classifier_name == 'KNN (K = 3)':
+        fpr_pre_line = '\\multicolumn{1}{|l|}{\\multirow{-2}{*}{KNN}} & FPR & '
+    else:
+        fpr_pre_line = 'Error'
+
+    txt = vae_te+' & ' + lda_te+ ' & ' +lvae_te+ ' & ' + vae_te_cov+' & ' + lda_te_cov+' & ' + lvae_te_cov+ \
+          ' & ' + vae_te_twi + ' & ' + lda_te_twi+ ' & ' + lvae_te_twi + ' \\\\'
+
+    line = fpr_pre_line + txt + '\n'
+
+    print(line)
+    return line
+
+
+def make_fnr_lines(isot_file, covid_file, twitter_file, classifier_name, decimal_format):
+    block_df = isot_file[((isot_file["Classifier"] == classifier_name) & (isot_file["Metric"] == 'FNR'))]
+    vae_tr = str(
+        format(block_df[(block_df['Feature'] == 'VAE') & (block_df['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    vae_te = str(
+        format(block_df[(block_df['Feature'] == 'VAE') & (block_df['Dataset'] == 'Test')]['Value'].values[0], decimal_format))
+    lda_tr = str(
+        format(block_df[(block_df['Feature'] == 'LDA') & (block_df['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    lda_te = str(
+        format(block_df[(block_df['Feature'] == 'LDA') & (block_df['Dataset'] == 'Test')]['Value'].values[0], decimal_format))
+    lvae_tr = str(
+        format(block_df[(block_df['Feature'] == 'VAE + LDA') & (block_df['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    lvae_te = str(
+        format(block_df[(block_df['Feature'] == 'VAE + LDA') & (block_df['Dataset'] == 'Test')]['Value'].values[0], decimal_format))
+
+    block_df_cov = covid_file[((covid_file["Classifier"] == classifier_name) & (covid_file["Metric"] == 'FNR'))]
+    vae_tr_cov = str(format(
+        block_df_cov[(block_df_cov['Feature'] == 'VAE') & (block_df_cov['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    vae_te_cov = str(
+        format(block_df_cov[(block_df_cov['Feature'] == 'VAE') & (block_df_cov['Dataset'] == 'Test')]['Value'].values[0],
+              decimal_format))
+    lda_tr_cov = str(format(
+        block_df_cov[(block_df_cov['Feature'] == 'LDA') & (block_df_cov['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    lda_te_cov = str(
+        format(block_df_cov[(block_df_cov['Feature'] == 'LDA') & (block_df_cov['Dataset'] == 'Test')]['Value'].values[0],
+              decimal_format))
+    lvae_tr_cov = str(format(
+        block_df_cov[(block_df_cov['Feature'] == 'VAE + LDA') & (block_df_cov['Dataset'] == 'Train')]['Value'].values[
+            0], decimal_format))
+    lvae_te_cov = str(format(
+        block_df_cov[(block_df_cov['Feature'] == 'VAE + LDA') & (block_df_cov['Dataset'] == 'Test')]['Value'].values[0],
+        decimal_format))
+
+    block_df_twi = twitter_file[
+        ((twitter_file["Classifier"] == classifier_name) & (twitter_file["Metric"] == 'FNR'))]
+    vae_tr_twi = str(format(
+        block_df_twi[(block_df_twi['Feature'] == 'VAE') & (block_df_twi['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    vae_te_twi = str(
+        format(block_df_twi[(block_df_twi['Feature'] == 'VAE') & (block_df_twi['Dataset'] == 'Test')]['Value'].values[0],
+              decimal_format))
+    lda_tr_twi = str(format(
+        block_df_twi[(block_df_twi['Feature'] == 'LDA') & (block_df_twi['Dataset'] == 'Train')]['Value'].values[0], decimal_format))
+    lda_te_twi = str(
+        format(block_df_twi[(block_df_twi['Feature'] == 'LDA') & (block_df_twi['Dataset'] == 'Test')]['Value'].values[0],
+              decimal_format))
+    lvae_tr_twi = str(format(
+        block_df_twi[(block_df_twi['Feature'] == 'VAE + LDA') & (block_df_twi['Dataset'] == 'Train')]['Value'].values[
+            0], decimal_format))
+    lvae_te_twi = str(format(
+        block_df_twi[(block_df_twi['Feature'] == 'VAE + LDA') & (block_df_twi['Dataset'] == 'Test')]['Value'].values[0],
+        decimal_format))
+
+    fnr_pre_line = '\multicolumn{1}{|l|}{} & FNR &'
+
+    txt =  vae_te + ' & ' +  lda_te + ' & ' +  lvae_te + ' & '  + vae_te_cov + ' & ' + lda_te_cov + ' & ' +  lvae_te_cov + \
+          ' & ' + vae_te_twi + ' & ' + lda_te_twi + ' & ' +  lvae_te_twi + ' \\\\'
+
+    line = fnr_pre_line + txt + ' \\hline \n'
+
+    print(line)
+    return line
+
+
+def make_table_header():
+    header =    '\\begin{table*}[h] \n' + \
+                '\\caption{Blabla} \n' + \
+                '\\label{tab:metrics_all} \n' + \
+                '\\begin{tabular}{ll|lll|lll|lll|} \n' + \
+                '\\cline{3-11} \n' + \
+                '&  & \\multicolumn{3}{c|}{ISOT} & \\multicolumn{3}{c|}{Covid} & \\multicolumn{3}{c|}{Twitter} \\\\ \\cline{3-11} \n' + \
+                ' & {\\color[HTML]{000000} } & \\multicolumn{1}{c|}{{\\color[HTML]{000000} VAE}} & \\multicolumn{1}{c|}{{\\color[HTML]{000000} LDA}} & \\multicolumn{1}{c|}{{\\color[HTML]{000000} VAE + LDA}} & \\multicolumn{1}{c|}{VAE} & \\multicolumn{1}{c|}{LDA} & \\multicolumn{1}{c|}{VAE + LDA} & \\multicolumn{1}{c|}{VAE} & \\multicolumn{1}{c|}{LDA} & \\multicolumn{1}{c|}{VAE + LDA} \\\\ \\hline \n'
+    # + \
+                # '\\multicolumn{1}{|l|}{CLF} & Metr. & \\multicolumn{1}{c|}{Test} & \\multicolumn{1}{c|}{Test} & \\multicolumn{1}{c|}{Test} & \\multicolumn{1}{c|}{Test} & \\multicolumn{1}{c|}{Test} & \\multicolumn{1}{c|}{Test} & \\multicolumn{1}{c|}{Test} & \\multicolumn{1}{c|}{Test} & \\multicolumn{1}{c|}{Test} \\\\ \\hline \n'
+    print(header)
+    return header
+
+
+def make_table_footer():
+    footer = '\\end{tabular} \n' + '\\end{table*} \n'
+    print(footer)
+    return footer
+
+
+def make_table(isot_file_path, covid_file_path, twitter_file_path, r=2):
+
+    decimal_format = '.' + str(r) + 'f'
+
+    isot_file = pd.read_csv(isot_file_path)
+    covid_file = pd.read_csv(covid_file_path)
+    twitter_file = pd.read_csv(twitter_file_path)
+
+    classifiers = ['SVM_nonlinear', 'Logistic Regression', 'Random Forest', 'Naive Bayes', 'MLP', 'KNN (K = 3)']
+
+    file1 = open("table.txt", "w")
+    file1.write(make_table_header())
+    for classifier in classifiers:
+        file1.write(make_acc_prec_fscore_lines(isot_file, covid_file, twitter_file, classifier, 'Accuracy', decimal_format))
+        file1.write(make_acc_prec_fscore_lines(isot_file, covid_file, twitter_file, classifier, 'F-score', decimal_format))
+        file1.write(make_fpr_lines(isot_file, covid_file, twitter_file, classifier, decimal_format))
+        file1.write(make_fnr_lines(isot_file, covid_file, twitter_file, classifier, decimal_format))
+
+    file1.write(make_table_footer())
+
+    file1.close()
+
+
+def radar_factory(num_vars, frame='circle'):
+    """
+    credit to matplotlib.org
+    Class copied from:
+    https://matplotlib.org/stable/gallery/specialty_plots/radar_chart.html
+    Create a radar chart with `num_vars` axes.
+
+    This function creates a RadarAxes projection and registers it.
+
+    Parameters
+    ----------
+    num_vars : int
+        Number of variables for radar chart.
+    frame : {'circle', 'polygon'}
+        Shape of frame surrounding axes.
+
+    """
+    # calculate evenly-spaced axis angles
+    theta = np.linspace(0, 2 * np.pi, num_vars, endpoint=False)
+
+    class RadarAxes(PolarAxes):
+
+        name = 'radar'
+        # use 1 line segment to connect specified points
+        RESOLUTION = 1
+
+        def __init__(self, *args, **kwargs):
+            super().__init__(*args, **kwargs)
+            # rotate plot such that the first axis is at the top
+            self.set_theta_zero_location('N')
+
+        def fill(self, *args, closed=True, **kwargs):
+            """Override fill so that line is closed by default"""
+            return super().fill(closed=closed, *args, **kwargs)
+
+        def plot(self, *args, **kwargs):
+            """Override plot so that line is closed by default"""
+            lines = super().plot(*args, **kwargs)
+            for line in lines:
+                self._close_line(line)
+
+        def _close_line(self, line):
+            x, y = line.get_data()
+            # FIXME: markers at x[0], y[0] get doubled-up
+            if x[0] != x[-1]:
+                x = np.append(x, x[0])
+                y = np.append(y, y[0])
+                line.set_data(x, y)
+
+        def set_varlabels(self, labels):
+            self.set_thetagrids(np.degrees(theta), labels)
+
+        def _gen_axes_patch(self):
+            # The Axes patch must be centered at (0.5, 0.5) and of radius 0.5
+            # in axes coordinates.
+            if frame == 'circle':
+                return Circle((0.5, 0.5), 0.5)
+            elif frame == 'polygon':
+                return RegularPolygon((0.5, 0.5), num_vars,
+                                      radius=.5, edgecolor="k")
+            else:
+                raise ValueError("Unknown value for 'frame': %s" % frame)
+
+        def _gen_axes_spines(self):
+            if frame == 'circle':
+                return super()._gen_axes_spines()
+            elif frame == 'polygon':
+                # spine_type must be 'left'/'right'/'top'/'bottom'/'circle'.
+                spine = Spine(axes=self,
+                              spine_type='circle',
+                              path=Path.unit_regular_polygon(num_vars))
+                # unit_regular_polygon gives a polygon of radius 1 centered at
+                # (0, 0) but we want a polygon of radius 0.5 centered at (0.5,
+                # 0.5) in axes coordinates.
+                spine.set_transform(Affine2D().scale(.5).translate(.5, .5)
+                                    + self.transAxes)
+                return {'polar': spine}
+            else:
+                raise ValueError("Unknown value for 'frame': %s" % frame)
+
+    register_projection(RadarAxes)
+    return theta
+
+
+def make_covid_data(k, top_folder, main_folder):
+
+    run_info_path = os.path.join(main_folder, 'run_info.pickle')
+    with open(run_info_path, 'rb') as handle:
+        run_info = pkl.load(handle)
+
+    word2vec_dim = run_info['word2vec_dim']
+    target_column = run_info['target_column']
+    dataset_name = run_info['dataset_name']
+
+    this_data_folder = os.path.join(top_folder, 'data', dataset_name)
+
+    with open(this_data_folder + '/word_index_' + str(word2vec_dim) + '.pkl', 'rb') as handle:
+        word_index = pkl.load(handle)
+
+    this_data_folder = top_folder + 'data/' + dataset_name + '/'
+
+    x_train = pd.read_csv(this_data_folder + '/x_train_' + str(word2vec_dim) + '.csv')
+    x_test = pd.read_csv(this_data_folder + '/x_test_' + str(word2vec_dim) + '.csv')
+
+    data_df_all = x_train.append(x_test, ignore_index=True)
+
+    temp_file = os.path.join(main_folder, "lda_model_" + str(k))
+    lda = gensim.models.ldamodel.LdaModel.load(temp_file)
+
+    real_df = data_df_all[data_df_all['label'] == 'real']
+    fake_df = data_df_all[data_df_all['label'] == 'fake']
+
+    real_documents = list(real_df[target_column])
+    real_texts = [[word for word in document.split()] for document in real_documents]
+    real_corpus = [[(word_index[word], txt.count(word)) for word in txt if word in word_index.keys()] for txt in
+                   real_texts]
+
+    real_gensim = np.array(lda.get_document_topics(real_corpus))
+    lda_theta_real = np.zeros([len(real_gensim), k])
+
+    for i in range(len(real_gensim)):
+        for elem in real_gensim[i]:
+            lda_theta_real[i, elem[0]] = elem[1]
+
+    fake_documents = list(fake_df[target_column])
+    fake_texts = [[word for word in document.split()] for document in fake_documents]
+    fake_corpus = [[(word_index[word], txt.count(word)) for word in txt if word in word_index.keys()] for txt in
+                   fake_texts]
+
+    fake_gensim = np.array(lda.get_document_topics(fake_corpus))
+    lda_theta_fake = np.zeros([len(fake_gensim), k])
+
+    for i in range(len(fake_gensim)):
+        for elem in fake_gensim[i]:
+            lda_theta_fake[i, elem[0]] = elem[1]
+
+    cov_data = ('Covid', [
+        list(np.mean(lda_theta_real, axis=0)),
+        list(np.mean(lda_theta_fake, axis=0))])
+
+    return cov_data
+
+
+def make_twitter_data(k, top_folder, main_folder):
+    run_info_path = os.path.join(main_folder, 'run_info.pickle')
+    with open(run_info_path, 'rb') as handle:
+        run_info = pkl.load(handle)
+
+    word2vec_dim = run_info['word2vec_dim']
+    target_column = run_info['target_column']
+    dataset_name = run_info['dataset_name']
+
+    this_data_folder = os.path.join(top_folder, 'data', dataset_name)
+
+    with open(this_data_folder + '/word_index_' + str(word2vec_dim) + '.pkl', 'rb') as handle:
+        word_index = pkl.load(handle)
+
+    this_data_folder = top_folder + 'data/' + dataset_name + '/'
+
+    x_train = pd.read_csv(this_data_folder + '/x_train_' + str(word2vec_dim) + '.csv')
+    x_test = pd.read_csv(this_data_folder + '/x_test_' + str(word2vec_dim) + '.csv')
+
+    data_df_all = x_train.append(x_test, ignore_index=True)
+
+    temp_file = os.path.join(main_folder, "LDA Twitter/lda_model_" + str(k))
+    lda = gensim.models.ldamodel.LdaModel.load(temp_file)
+
+    real_df = data_df_all[data_df_all['label'] == 'real']
+    fake_df = data_df_all[data_df_all['label'] == 'fake']
+
+    real_documents = list(real_df[target_column])
+    real_texts = [[word for word in document.split()] for document in real_documents]
+    real_corpus = [[(word_index[word], txt.count(word)) for word in txt if word in word_index.keys()] for txt in
+                   real_texts]
+
+    real_gensim = np.array(lda.get_document_topics(real_corpus))
+    lda_theta_real = np.zeros([len(real_gensim), k])
+
+    for i in range(len(real_gensim)):
+        for elem in real_gensim[i]:
+            lda_theta_real[i, elem[0]] = elem[1]
+
+    fake_documents = list(fake_df[target_column])
+    fake_texts = [[word for word in document.split()] for document in fake_documents]
+    fake_corpus = [[(word_index[word], txt.count(word)) for word in txt if word in word_index.keys()] for txt in
+                   fake_texts]
+
+    fake_gensim = np.array(lda.get_document_topics(fake_corpus))
+    lda_theta_fake = np.zeros([len(fake_gensim), k])
+
+    for i in range(len(fake_gensim)):
+        for elem in fake_gensim[i]:
+            lda_theta_fake[i, elem[0]] = elem[1]
+
+    t_data = ('Twitter', [
+        list(np.mean(lda_theta_real, axis=0)),
+        list(np.mean(lda_theta_fake, axis=0))])
+
+    return t_data
+
+
+def make_isot_data(k, top_folder, main_folder):
+    run_info_path = os.path.join(main_folder, 'run_info.pickle')
+    with open(run_info_path, 'rb') as handle:
+        run_info = pkl.load(handle)
+
+    word2vec_dim = run_info['word2vec_dim']
+    target_column = run_info['target_column']
+    dataset_name = run_info['dataset_name']
+
+    this_data_folder = os.path.join(top_folder, 'data', dataset_name)
+
+    with open(this_data_folder + '/word_index_' + str(word2vec_dim) + '.pkl', 'rb') as handle:
+        word_index = pkl.load(handle)
+
+    this_data_folder = top_folder + 'data/' + dataset_name + '/'
+
+    x_train = pd.read_csv(this_data_folder + '/x_train_' + str(word2vec_dim) + '.csv')
+    x_test = pd.read_csv(this_data_folder + '/x_test_' + str(word2vec_dim) + '.csv')
+
+    data_df_all = x_train.append(x_test, ignore_index=True)
+
+    temp_file = os.path.join(main_folder, "ISOT Lda/lda_model_" + str(k))
+    lda = gensim.models.ldamodel.LdaModel.load(temp_file)
+
+    real_df = data_df_all[data_df_all['label'] == 'real']
+    fake_df = data_df_all[data_df_all['label'] == 'fake']
+
+    real_documents = list(real_df[target_column])
+    real_texts = [[word for word in document.split()] for document in real_documents]
+    real_corpus = [[(word_index[word], txt.count(word)) for word in txt if word in word_index.keys()] for txt in
+                   real_texts]
+
+    real_gensim = np.array(lda.get_document_topics(real_corpus))
+    lda_theta_real = np.zeros([len(real_gensim), k])
+
+    for i in range(len(real_gensim)):
+        for elem in real_gensim[i]:
+            lda_theta_real[i, elem[0]] = elem[1]
+
+    fake_documents = list(fake_df[target_column])
+    fake_texts = [[word for word in document.split()] for document in fake_documents]
+    fake_corpus = [[(word_index[word], txt.count(word)) for word in txt if word in word_index.keys()] for txt in
+                   fake_texts]
+
+    fake_gensim = np.array(lda.get_document_topics(fake_corpus))
+    lda_theta_fake = np.zeros([len(fake_gensim), k])
+
+    for i in range(len(fake_gensim)):
+        for elem in fake_gensim[i]:
+            lda_theta_fake[i, elem[0]] = elem[1]
+
+    is_data = ('ISOT', [
+        list(np.mean(lda_theta_real, axis=0)),
+        list(np.mean(lda_theta_fake, axis=0))])
+
+    return is_data
+
+
+def make_radar_plot_data(top_folder, main_folder, categories, k):
+    isot_data = make_isot_data(k, top_folder, main_folder)
+
+    cov_data = make_covid_data(k, top_folder, main_folder)
+
+    twitter_data = make_twitter_data(k, top_folder, main_folder)
+
+    data = [categories, isot_data, cov_data, twitter_data]
+
+    return data
+
+
+def plot_subject_credibility(top_folder, main_folder, k):
+    categories = ['Topic ' + str(i) for i in range(k)]
+
+    data = make_radar_plot_data(top_folder, main_folder, categories, k)
+
+    N = k
+    theta = radar_factory(N, frame='polygon')
+
+    spoke_labels = data.pop(0)
+
+    fig, axs = plt.subplots(figsize=(19, 5), nrows=1, ncols=3,
+                            subplot_kw=dict(projection='radar'))
+    fig.subplots_adjust(wspace=0.25, hspace=0.20, top=0.85, bottom=0.05)
+
+    colors = ['b', 'r']
+
+    for ax, (title, case_data) in zip(axs.flat, data):
+        # ax.set_rgrids([0.2, 0.4, 0.6, 0.8])
+        ax.set_title(title, weight='bold', size='medium', position=(0.5, 1.1),
+                     horizontalalignment='center', verticalalignment='center')
+        for d, color in zip(case_data, colors):
+            ax.plot(theta, d, color=color)
+            ax.fill(theta, d, facecolor=color, alpha=0.25)
+        ax.set_varlabels(spoke_labels)
+
+    # add legend relative to top-left plot
+    labels = ('Real', 'Fake')
+    legend = axs[2].legend(labels, loc=(0.9, .95),
+                           labelspacing=0.1, fontsize='small')
+
+    # fig.text(0.5, 0.965, 'Subject Credibility',
+    #          horizontalalignment='center', color='black', weight='bold',
+    #          size='large')
+
+    plt.savefig(main_folder + 'radar_subjects.png')
+    plt.savefig(main_folder + 'radar_subjects.pdf')
