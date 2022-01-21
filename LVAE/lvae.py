@@ -28,21 +28,20 @@ class LVAE(object):
         input_txt = tf.keras.Input(shape=(max_length,), name='input_txt')
         encoded = self._build_encoder2(input_txt)
 
-        self.encoder = keras.Model(input_txt, outputs=encoded)
-        encoded_input = keras.Input(shape=(latent_dim,))
+        self.encoder = tf.keras.Model(input_txt, outputs=encoded)
+        encoded_input = tf.keras.Input(shape=(latent_dim,))
         predicted_outcome = self._build_fnd(encoded_input)
-        self.fnd = keras.Model(encoded_input, predicted_outcome)
+        self.fnd = tf.keras.Model(encoded_input, predicted_outcome)
         decoded_txt = self._build_decoder(encoded_input)
 
-        self.decoder = keras.Model(encoded_input, decoded_txt)
+        self.decoder = tf.keras.Model(encoded_input, decoded_txt)
 
-        self.autoencoder = keras.Model(inputs=input_txt, outputs=[self.decoder(self.encoder(input_txt)), self._build_fnd(encoded)])
+        self.autoencoder = tf.keras.Model(inputs=input_txt, outputs=[self.decoder(self.encoder(input_txt)), self._build_fnd(encoded)])
 
         losses = {"decoded_txt": "sparse_categorical_crossentropy", "fnd_output": "binary_crossentropy"}
 
         self.autoencoder.compile(optimizer=Adam(1e-5), loss=losses, metrics=['accuracy'],
                                  experimental_run_tf_function=False)
-
 
         self.get_features = K.function(input_txt, encoded)
 
@@ -51,27 +50,27 @@ class LVAE(object):
                                      name='txt_embed')(input_txt)
         lstm_txt_1 = layers.Bidirectional(layers.LSTM(self.latent_dim, return_sequences=True, name='lstm_txt_1',
                                                       activation='tanh',
-                                                      kernel_regularizer=keras.regularizers.l2(self.reg_lambda)),
+                                                      kernel_regularizer=tf.keras.regularizers.l2(self.reg_lambda)),
                                           merge_mode='concat')(txt_embed)
 
         fc_txt = layers.Dense(self.latent_dim, activation='relu', name='dense_txt',
-                              kernel_regularizer=keras.regularizers.l2(self.reg_lambda))(lstm_txt_1)
+                              kernel_regularizer=tf.keras.regularizers.l2(self.reg_lambda))(lstm_txt_1)
         h = layers.Dense(self.latent_dim, name='shared', activation='tanh',
-                         kernel_regularizer=keras.regularizers.l2(self.reg_lambda))(fc_txt)
+                         kernel_regularizer=tf.keras.regularizers.l2(self.reg_lambda))(fc_txt)
         return h
 
     def _build_decoder2(self, encoded):
         dec_fc_txt = layers.Dense(self.latent_dim, name='dec_fc_txt', activation='tanh',
-                                  kernel_regularizer=keras.regularizers.l2(self.reg_lambda))(encoded)
+                                  kernel_regularizer=tf.keras.regularizers.l2(self.reg_lambda))(encoded)
         dec_lstm_txt_1 = layers.LSTM(self.latent_dim, return_sequences=True, activation='tanh', name='dec_lstm_txt_1',
-                                     kernel_regularizer=keras.regularizers.l2(self.reg_lambda))(dec_fc_txt)
+                                     kernel_regularizer=tf.keras.regularizers.l2(self.reg_lambda))(dec_fc_txt)
         decoded_txt = layers.TimeDistributed(layers.Dense(self.vocab_size, activation='softmax'), name='decoded_txt')(
             dec_lstm_txt_1)
         return decoded_txt
 
     def _build_fnd2(self, encoded):
-        h = layers.Dense(self.latent_dim*2, activation='tanh', kernel_regularizer=keras.regularizers.l2(self.fnd_lambda))(encoded)
-        h = layers.Dense(self.latent_dim, activation='relu', kernel_regularizer=keras.regularizers.l2(self.fnd_lambda))(h)
+        h = layers.Dense(self.latent_dim*2, activation='tanh', kernel_regularizer=tf.keras.regularizers.l2(self.fnd_lambda))(encoded)
+        h = layers.Dense(self.latent_dim, activation='relu', kernel_regularizer=tf.keras.regularizers.l2(self.fnd_lambda))(h)
         # predicted_outcome = layers.Dense(1, activation='sigmoid', name='fnd_output')(h)
         return layers.Dense(1, activation='sigmoid', name='fnd_output')(h)
 
@@ -90,19 +89,19 @@ class LVAE(object):
         # vae_ce_loss, vae_mse_loss, encoded = self._build_encoder(input_txt)
         txt_loss, encoded = self._build_encoder(input_txt)
 
-        self.encoder = keras.Model(input_txt, outputs=encoded)
+        self.encoder = tf.keras.Model(input_txt, outputs=encoded)
         # encoder.summary()
-        encoded_input = keras.Input(shape=(latent_dim,))
+        encoded_input = tf.keras.Input(shape=(latent_dim,))
         predicted_outcome = self._build_fnd(encoded_input)
-        self.fnd = keras.Model(encoded_input, predicted_outcome)
+        self.fnd = tf.keras.Model(encoded_input, predicted_outcome)
         # fnd.summary()
         decoded_txt = self._build_decoder(encoded_input)
 
-        self.decoder = keras.Model(encoded_input, decoded_txt)
+        self.decoder = tf.keras.Model(encoded_input, decoded_txt)
 
         decoder_output = self._build_decoder(encoded)
 
-        self.autoencoder = keras.Model(inputs=input_txt, outputs=[decoder_output, self._build_fnd(encoded)])
+        self.autoencoder = tf.keras.Model(inputs=input_txt, outputs=[decoder_output, self._build_fnd(encoded)])
 
         # losses = {"decoded_txt": "sparse_categorical_crossentropy", "fnd_output": vae_mse_loss}
         losses = {"decoded_txt": "sparse_categorical_crossentropy", "fnd_output": "binary_crossentropy"}
@@ -122,17 +121,17 @@ class LVAE(object):
                                      name='txt_embed', trainable=False, weights=[self.embedding_matrix])(input_txt)
         lstm_txt_1 = layers.Bidirectional(layers.LSTM(self.latent_dim, return_sequences=True, name='lstm_txt_1',
                                                       activation='tanh',
-                                                      kernel_regularizer=keras.regularizers.l2(self.reg_lambda)),
+                                                      kernel_regularizer=tf.keras.regularizers.l2(self.reg_lambda)),
                                           merge_mode='concat')(txt_embed)
         lstm_txt_2 = layers.Bidirectional(layers.LSTM(self.latent_dim, return_sequences=False, name='lstm_txt_2',
                                                       activation='tanh',
-                                                      kernel_regularizer=keras.regularizers.l2(self.reg_lambda)),
+                                                      kernel_regularizer=tf.keras.regularizers.l2(self.reg_lambda)),
                                           merge_mode='concat')(lstm_txt_1)
         fc_txt = layers.Dense(self.latent_dim, activation='tanh', name='dense_txt',
-                              kernel_regularizer=keras.regularizers.l2(self.reg_lambda))(
+                              kernel_regularizer=tf.keras.regularizers.l2(self.reg_lambda))(
             lstm_txt_2)
         h = layers.Dense(self.latent_dim, name='shared', activation='tanh',
-                         kernel_regularizer=keras.regularizers.l2(self.reg_lambda))(fc_txt)
+                         kernel_regularizer=tf.keras.regularizers.l2(self.reg_lambda))(fc_txt)
 
         def sampling(args):
             z_mean_, z_log_var_ = args
@@ -172,22 +171,22 @@ class LVAE(object):
                 layers.Lambda(sampling, output_shape=(self.latent_dim,), name='lambda')([z_mean, z_log_var]))
 
     def _build_fnd(self, encoded):
-        h = layers.Dense(self.latent_dim*2, activation='tanh', kernel_regularizer=keras.regularizers.l2(self.fnd_lambda))(encoded)
-        h = layers.Dense(self.latent_dim, activation='tanh', kernel_regularizer=keras.regularizers.l2(self.fnd_lambda))(h)
+        h = layers.Dense(self.latent_dim*2, activation='tanh', kernel_regularizer=tf.keras.regularizers.l2(self.fnd_lambda))(encoded)
+        h = layers.Dense(self.latent_dim, activation='tanh', kernel_regularizer=tf.keras.regularizers.l2(self.fnd_lambda))(h)
         # predicted_outcome = layers.Dense(1, activation='sigmoid', name='fnd_output')(h)
         return layers.Dense(1, activation='sigmoid', name='fnd_output')(h)
 
     def _build_decoder(self, encoded):
         dec_fc_txt = layers.Dense(self.latent_dim, name='dec_fc_txt', activation='tanh',
-                                  kernel_regularizer=keras.regularizers.l2(self.reg_lambda))(encoded)
+                                  kernel_regularizer=tf.keras.regularizers.l2(self.reg_lambda))(encoded)
         repeated_context = layers.RepeatVector(self.max_length)(dec_fc_txt)
         dec_lstm_txt_1 = layers.LSTM(self.latent_dim, return_sequences=True, activation='tanh', name='dec_lstm_txt_1',
-                                     kernel_regularizer=keras.regularizers.l2(self.reg_lambda))(repeated_context)
+                                     kernel_regularizer=tf.keras.regularizers.l2(self.reg_lambda))(repeated_context)
         dec_lstm_txt_2 = layers.LSTM(self.latent_dim, return_sequences=True, activation='tanh', name='dec_lstm_txt_2',
-                                     kernel_regularizer=keras.regularizers.l2(self.reg_lambda))(dec_lstm_txt_1)
+                                     kernel_regularizer=tf.keras.regularizers.l2(self.reg_lambda))(dec_lstm_txt_1)
         decoded_txt = layers.TimeDistributed(layers.Dense(self.vocab_size, activation='softmax'), name='decoded_txt')(
             dec_lstm_txt_2)
-        # decoder = keras.Model(encoded_input, decoded_txt, name="decoder")
+        # decoder = tf.keras.Model(encoded_input, decoded_txt, name="decoder")
         # decoder.summary()
         return decoded_txt
 
@@ -610,9 +609,9 @@ def lvae_classifier(run_info):
     features_te = np.concatenate([vae_features_test, lda_features_test], axis=1)
 
     latent_space_dim = features_tr.shape[1]
-    classifier = keras.Sequential()
+    classifier = tf.keras.Sequential()
     # classifier.add(layers.Dense(latent_space_dim*2, activation='tanh',
-    # kernel_regularizer=keras.regularizers.l2(fnd_lambda), input_dim=latent_space_dim))
+    # kernel_regularizer=tf.keras.regularizers.l2(fnd_lambda), input_dim=latent_space_dim))
     classifier.add(layers.Dense(latent_space_dim, activation='relu'))
     classifier.add(layers.Dense(1, activation='sigmoid', name='fnd_output'))
     classifier.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])

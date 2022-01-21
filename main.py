@@ -924,12 +924,14 @@ if __name__ == '__main__':
     else:
         dataset_name = exit('Error: You need to specify the dataset name with -d command. \nDatasets choices could be '
                             'Twitter or ISOT or Covid.')
+        # dataset_name = 'Twitter'
 
     if '-a' in sys.argv:
         dataset_address = sys.argv[sys.argv.index('-a') + 1]
     else:
         dataset_address = exit('Error: You need to specify the address of top folder contatining both dataset folders '
                                'with -a command, eg. -a "data/".')
+        # dataset_address = 'data/'
 
     if '-e' in sys.argv:
         epoch_no = int(sys.argv[sys.argv.index('-e') + 1])
