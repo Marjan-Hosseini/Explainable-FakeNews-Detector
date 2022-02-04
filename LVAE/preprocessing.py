@@ -153,10 +153,14 @@ def tokenize(text):
     #words = [LEMMATIZER.lemmatize(word) for word in words if word not in STOPWORDS]
     return text
 
+def remove_url(string):
+    return re.sub(r'http\S+', '', string)
+
 
 def new_process_text(string):
-    txt = remove_parenthesis(string)
-    txt = remove_stopwords(txt)
+    txt = remove_url(string)
+    txt = remove_parenthesis(txt)
+    # txt = remove_stopwords(txt)
     txt = clean_fnc(txt)
     # txt = tokenize(txt)
     # txt = clean(txt)
@@ -171,6 +175,11 @@ def clean(s):
 def remove_stopwords(string):
     l = string.split(' ')
     # Removes stopwords from a list of tokens
+    # twitter_stopwords = 'stopwords/stopwords.txt'
+    # with open(twitter_stopwords, 'r') as f:
+    #     t_sw = f.readlines()
+    # t_sw = [i.split('\n')[0] for i in t_sw]
+    # diff = [i for i in t_sw if i not in feature_extraction.text.ENGLISH_STOP_WORDS]
     return ' '.join([w for w in l if w not in feature_extraction.text.ENGLISH_STOP_WORDS])
 
 
@@ -351,6 +360,9 @@ def get_embeds(folder, data_df, embed_dim, col_label='text'):
     print('Max sentence length:', max([len(tweet) for tweet in tweets]))
     print('Avg sentence length:', sum([len(tweet) for tweet in tweets]) / len(tweets))
     print('Min sentence length:', min([len(tweet) for tweet in tweets]))
+
+    lent = [len(tweet) for tweet in tweets]
+    # plot_doc_len_hist(lent)
 
     # for newer versions:
     # model = Word2Vec(tweets, min_count=1, vector_size=embed_dim)
@@ -736,7 +748,7 @@ def new_prepare_data(run_info, top_folder, dataset_address):
         filtered_data_df_all = filtered_data_df_real.append(filtered_data_df_fake, ignore_index=True)
 
         x_train, x_test, y_train, y_test = pre_process_dataset(this_data_folder, filtered_data_df_all, dataset_name,
-                                                               target_column, word2vec_dim, sequence_len=sequence_length,
+                                                               target_column, word2vec_dim, sequence_len=500,
                                                                test_size=0.1)
     elif dataset_name == 'Covid':
         address = dataset_address + dataset_name + '/COVID_Fake_News_Data.csv'
@@ -750,17 +762,15 @@ def new_prepare_data(run_info, top_folder, dataset_address):
     elif dataset_name == 'Twitter':
         tr_data_address = dataset_address + dataset_name + '/posts_tr.txt'
         # te_data_address = dataset_address + dataset_name + '/posts_te.txt'
-        tr_data, _ = pre_process(tr_data_address)
+        tr_data, c = pre_process(tr_data_address) # no text preprocessing is done here, only makes the df
         # te_data, _ = pre_process(te_data_address)
         filtered_data_df_tr, gg = new_preprocess_and_filter(tr_data, dataset_name, col_label=target_column)
         # filtered_data_df_te, cc = new_preprocess_and_filter(te_data, dataset_name, col_label=target_column)
         # filtered_data_df_all = filtered_data_df_tr.append(filtered_data_df_te, ignore_index=True)
         filtered_data_df_all = filtered_data_df_tr
-
         x_train, x_test, y_train, y_test = pre_process_dataset(this_data_folder, filtered_data_df_all, dataset_name,
                                                                target_column, word2vec_dim, sequence_len=sequence_length,
                                                                test_size=0.1)
-
     elif dataset_name == 'CLOSE':
         if not os.path.exists(dataset_address + dataset_name + '/negative_semi_filtered_' + target_column +
                               '.csv') or not os.path.exists(dataset_address + dataset_name + '/positive_semi_filtered_'
@@ -785,7 +795,6 @@ def new_prepare_data(run_info, top_folder, dataset_address):
         x_train, x_test, y_train, y_test = pre_process_dataset(this_data_folder, filtered_data_df_all, dataset_name,
                                                                target_column, word2vec_dim, sequence_len=sequence_length,
                                                                test_size=0.1)
-
     else:
         print('man')
         x_train, x_test, y_train, y_test = 0, 0, 0, 0
@@ -809,15 +818,15 @@ def make_run_info(top_folder, dataset_name, latent_dim, epoch_no, n_topics, n_it
     included_features = ['vae', 'lda_tfidf'] # ['vae', 'lda_tf']
 
     if dataset_name == 'ISOT':
-        sequence_length = 36
-        target_column = 'title'  # 'title', 'text'
+        sequence_length = 8278 # 36 with title, 8278 with the text
+        target_column = 'text'  # 'title', 'text'
 
     elif dataset_name == 'Covid':
         sequence_length = 61
         target_column = 'headlines'  # 'title', 'text'
 
     elif dataset_name == 'Twitter':
-        sequence_length = 29
+        sequence_length = 31
         target_column = 'text'  # 'title', 'text'
 
     elif dataset_name == 'CLOSE':
@@ -828,8 +837,8 @@ def make_run_info(top_folder, dataset_name, latent_dim, epoch_no, n_topics, n_it
         sequence_length = 0
         target_column = ''  # 'title', 'text'
 
-    model_name = dataset_name + '_ep_' + str(epoch_no) + '_seq_len_' + str(sequence_length) + '_topics_' + \
-                 str(n_topics) + '_latent_dim_' + str(latent_dim) + '_w2v_' + str(word2vec_dim)
+    model_name = dataset_name + '_ep_' + str(epoch_no) + '_seq_len_' + str(sequence_length) + '_latent_dim_' + \
+                 str(latent_dim) + '_w2v_' + str(word2vec_dim)
 
     if not os.path.exists(top_folder):
         os.makedirs(top_folder)

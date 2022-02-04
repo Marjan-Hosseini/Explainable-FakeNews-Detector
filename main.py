@@ -125,141 +125,194 @@ def tvae_experiment(run_info, top_folder):
         np.save(main_folder + 'features/vae_test', vae_features_te)
         np.save(main_folder + 'test_label', output_te)
 
+#
+# def lda_experiment(run_info, top_folder):
+#     main_folder = run_info['main_folder']
+#     if not os.path.exists(main_folder):
+#         os.makedirs(main_folder)
+#     n_topics = run_info['n_topics']
+#     n_top_words = run_info['n_top_words']
+#     n_features = run_info['n_features']
+#     n_iter = run_info['n_iter']
+#     target_column = run_info['target_column']
+#     dataset_name = run_info['dataset_name']
+#     word2vec_dim = run_info['word2vec_dim']
+#     print('LDA experiment with', n_topics, 'topics:')
+#     with open(main_folder + 'run_info.pickle', 'wb') as handle:
+#         pkl.dump(run_info, handle)
+#
+#     this_data_folder = top_folder + 'data/' + dataset_name + '/'
+#
+#     x_train = pd.read_csv(this_data_folder + 'x_train_' + str(word2vec_dim) + '.csv')
+#     x_test = pd.read_csv(this_data_folder + 'x_test_' + str(word2vec_dim) + '.csv')
+#
+#     # train lda
+#     data_df_all = x_train.append(x_test, ignore_index=True)
+#
+#     lda_tf, tf_vectorizer = LDA_train_tf(main_folder, n_topics, data_df_all[target_column], n_top_words,
+#                                          n_features, n_iter=n_iter)
+#
+#     # lda_tfidf, tfidf_vectorizer = LDA_train_tf_idf(main_folder, n_topics, data_df_all[target_column],
+#     #                                                n_top_words, n_features, n_iter=n_iter)
+#
+#     # LDA
+#     # tf features
+#     if not os.path.exists(main_folder+'features/'):
+#         os.makedirs(main_folder+'features/')
+#     lda_features_tf_tr = extract_lda_tf_features(main_folder, x_train[target_column], data_name='train')
+#     lda_features_tf_te = extract_lda_tf_features(main_folder, x_test[target_column], data_name='test')
+#     np.save(main_folder + 'features/lda_tf_train', lda_features_tf_tr)
+#     np.save(main_folder + 'features/lda_tf_test', lda_features_tf_te)
+#
+#     lda_features_tfidf_tr, lda_features_tfidf_te = LDA_train_tf_idf_extract_features(main_folder, n_topics,
+#                                                                                      data_df_all[target_column],
+#                                                                                      x_train[target_column],
+#                                                                                      x_test[target_column],
+#                                                                                      n_top_words, n_features,
+#                                                                                      n_iter=n_iter)
+#
+#     # # tfidf features
+#     # lda_features_tfidf_tr = extract_lda_tfidf_features(main_folder, x_train[target_column], data_name='train')
+#     # lda_features_tfidf_te = extract_lda_tfidf_features(main_folder, x_test[target_column], data_name='test')
+#     np.save(main_folder + 'features/lda_tfidf_train', lda_features_tfidf_tr)
+#     np.save(main_folder + 'features/lda_tfidf_test', lda_features_tfidf_te)
+#
+#
+# def new_lda_experiment(run_info, top_folder):
+#     main_folder = run_info['main_folder']
+#     if not os.path.exists(main_folder):
+#         os.makedirs(main_folder)
+#     n_topics = run_info['n_topics']
+#     n_top_words = run_info['n_top_words']
+#     n_features = run_info['n_features']
+#     n_iter = run_info['n_iter']
+#     target_column = run_info['target_column']
+#     dataset_name = run_info['dataset_name']
+#     word2vec_dim = run_info['word2vec_dim']
+#     print('LDA experiment with', n_topics, 'topics:')
+#     with open(main_folder + 'run_info.pickle', 'wb') as handle:
+#         pkl.dump(run_info, handle)
+#
+#     this_data_folder = top_folder + 'data/' + dataset_name + '/'
+#
+#     x_train = np.load(this_data_folder + 'train_text_' + str(word2vec_dim) + '.npy')
+#     x_test = np.load(this_data_folder + 'test_text_' + str(word2vec_dim) + '.npy')
+#
+#     x_df_all = np.concatenate([x_train, x_test], axis=0)
+#     new_df = []
+#     for i in range(x_df_all.shape[0]):
+#         temp = []
+#         for j in range(x_df_all.shape[1]):
+#             temp.append(str(x_df_all[i, j]))
+#         xx = ' '.join(temp)
+#         new_df.append(xx)
+#
+#     # new_df = list(data_df_all['headlines'])
+#     # new_df = list(data_df_all['title'])
+#
+#     tfidf_vectorizer = TfidfVectorizer(max_df=0.9, min_df=2, lowercase=False, max_features=n_features,
+#                                        stop_words={'english'}, analyzer='word')
+#     tfidf = tfidf_vectorizer.fit_transform(new_df)
+#
+#     with open(main_folder + 'lda_vectorizer_tfidf.pkl', 'wb') as handle:
+#         pkl.dump(tfidf_vectorizer.vocabulary_, handle)
+#
+#     lda_2 = LatentDirichletAllocation(n_components=n_topics, max_iter=n_iter, learning_method='batch',
+#                                       learning_offset=50., random_state=0, verbose=1)
+#     lda_2.fit(tfidf)
+#
+#     # with open(main_folder + 'lda_model_tfidf.pkl', 'rb') as handle:
+#     #     lda_2 = pkl.load(handle)
+#
+#     # with open(main_folder + 'lda_vectorizer_tfidf.pkl', 'rb') as handle:
+#     #     tfidf_vectorizer = pkl.load(handle)
+#
+#     with open(main_folder + 'lda_model_tfidf.pkl', 'wb') as handle:
+#         pkl.dump(lda_2, handle)
+#
+#     # tf_feature_names = tfidf_vectorizer.get_feature_names()
+#     # if n_topics <= 10:
+#     #     plot_name = main_folder + dataset_name + '_lda_topic_tf_' + str(n_topics)
+#     #     plot_top_words(lda_2, tf_feature_names, n_top_words, plot_name)
+#
+#     print('Extracting LDA with tf_idf features ...')
+#
+#     tr_df = []
+#     for i in range(x_train.shape[0]):
+#         temp = []
+#         for j in range(x_train.shape[1]):
+#             temp.append(str(x_train[i, j]))
+#         xx = ' '.join(temp)
+#         tr_df.append(xx)
+#
+#     X_train_vec = tfidf_vectorizer.transform(tr_df)
+#     X_train_topics = lda_2.transform(X_train_vec)
+#
+#     te_df = []
+#     for i in range(x_test.shape[0]):
+#         temp = []
+#         for j in range(x_test.shape[1]):
+#             temp.append(str(x_test[i, j]))
+#         xx = ' '.join(temp)
+#         te_df.append(xx)
+#     X_test_vec = tfidf_vectorizer.transform(te_df)
+#     X_test_topics = lda_2.transform(X_test_vec)
+#
+#     np.save(main_folder + 'features/lda_tfidf_train', X_train_topics)
+#     np.save(main_folder + 'features/lda_tfidf_test', X_test_topics)
 
-def lda_experiment(run_info, top_folder):
-    main_folder = run_info['main_folder']
-    if not os.path.exists(main_folder):
-        os.makedirs(main_folder)
-    n_topics = run_info['n_topics']
-    n_top_words = run_info['n_top_words']
-    n_features = run_info['n_features']
-    n_iter = run_info['n_iter']
-    target_column = run_info['target_column']
-    dataset_name = run_info['dataset_name']
-    word2vec_dim = run_info['word2vec_dim']
-    print('LDA experiment with', n_topics, 'topics:')
-    with open(main_folder + 'run_info.pickle', 'wb') as handle:
-        pkl.dump(run_info, handle)
 
-    this_data_folder = top_folder + 'data/' + dataset_name + '/'
+def n_topic_cross_validation(corpus, tr_corpus, te_corpus, d, main_folder):
+    coherence_u_mass_all = []
+    coherence_u_mass_tr = []
+    coherence_u_mass_test = []
+    for ntop in [2, 5, 10, 32, 50, 64, 100]:
+        print(ntop)
+        Lda = gensim.models.ldamodel.LdaModel
+        ldamodel = Lda(corpus, num_topics=ntop, id2word=d, passes=200, iterations=1000, chunksize=10000, eval_every=10)
+        temp_file = os.path.join(main_folder, 'ldamodels/', "lda_model_" + str(ntop))
 
-    x_train = pd.read_csv(this_data_folder + 'x_train_' + str(word2vec_dim) + '.csv')
-    x_test = pd.read_csv(this_data_folder + 'x_test_' + str(word2vec_dim) + '.csv')
+        with open(os.path.join(main_folder, 'ldamodels/', "lda_model_" + str(ntop) + '_topic_words.txt'), 'w') as f:
+            for top in range(ntop):
+                topw = ldamodel.get_topic_terms(topicid=top, topn=10)
+                topwords = [(d[i[0]], str(i[1])) for i in topw]
+                f.write("%s\n" % topwords)
 
-    # train lda
-    data_df_all = x_train.append(x_test, ignore_index=True)
+        ldamodel.save(temp_file)
+        # ldamodel = gensim.models.ldamodel.LdaModel.load(main_folder + "lda_model_" + str(k))
+        cm = gensim.models.coherencemodel.CoherenceModel(model=ldamodel, corpus=corpus, dictionary=d,
+                                                         coherence='u_mass')
+        coherence_u_mass_all.append((ntop, cm.get_coherence()))
 
-    lda_tf, tf_vectorizer = LDA_train_tf(main_folder, n_topics, data_df_all[target_column], n_top_words,
-                                         n_features, n_iter=n_iter)
+        cm = gensim.models.coherencemodel.CoherenceModel(model=ldamodel, corpus=tr_corpus, dictionary=d,
+                                                         coherence='u_mass')
+        coherence_u_mass_tr.append((ntop, cm.get_coherence()))
 
-    # lda_tfidf, tfidf_vectorizer = LDA_train_tf_idf(main_folder, n_topics, data_df_all[target_column],
-    #                                                n_top_words, n_features, n_iter=n_iter)
+        cm2 = gensim.models.coherencemodel.CoherenceModel(model=ldamodel, corpus=te_corpus, dictionary=d,
+                                                          coherence='u_mass')
+        coherence_u_mass_test.append((ntop, cm2.get_coherence()))
 
-    # LDA
-    # tf features
-    if not os.path.exists(main_folder+'features/'):
-        os.makedirs(main_folder+'features/')
-    lda_features_tf_tr = extract_lda_tf_features(main_folder, x_train[target_column], data_name='train')
-    lda_features_tf_te = extract_lda_tf_features(main_folder, x_test[target_column], data_name='test')
-    np.save(main_folder + 'features/lda_tf_train', lda_features_tf_tr)
-    np.save(main_folder + 'features/lda_tf_test', lda_features_tf_te)
+    with open(os.path.join(main_folder, 'ldamodels/', 'coherence_score_all.txt'), 'w') as f:
+        for elem in coherence_u_mass_all:
+            f.write("%s\n" % str(elem))
 
-    lda_features_tfidf_tr, lda_features_tfidf_te = LDA_train_tf_idf_extract_features(main_folder, n_topics,
-                                                                                     data_df_all[target_column],
-                                                                                     x_train[target_column],
-                                                                                     x_test[target_column],
-                                                                                     n_top_words, n_features,
-                                                                                     n_iter=n_iter)
+    with open(os.path.join(main_folder, 'ldamodels/', 'coherence_score_tr.txt'), 'w') as f:
+        for elem in coherence_u_mass_tr:
+            f.write("%s\n" % str(elem))
 
-    # # tfidf features
-    # lda_features_tfidf_tr = extract_lda_tfidf_features(main_folder, x_train[target_column], data_name='train')
-    # lda_features_tfidf_te = extract_lda_tfidf_features(main_folder, x_test[target_column], data_name='test')
-    np.save(main_folder + 'features/lda_tfidf_train', lda_features_tfidf_tr)
-    np.save(main_folder + 'features/lda_tfidf_test', lda_features_tfidf_te)
+    with open(os.path.join(main_folder, 'ldamodels/', 'coherence_score_te.txt'), 'w') as f:
+        for elem in coherence_u_mass_test:
+            f.write("%s\n" % str(elem))
 
-
-def new_lda_experiment(run_info, top_folder):
-    main_folder = run_info['main_folder']
-    if not os.path.exists(main_folder):
-        os.makedirs(main_folder)
-    n_topics = run_info['n_topics']
-    n_top_words = run_info['n_top_words']
-    n_features = run_info['n_features']
-    n_iter = run_info['n_iter']
-    target_column = run_info['target_column']
-    dataset_name = run_info['dataset_name']
-    word2vec_dim = run_info['word2vec_dim']
-    print('LDA experiment with', n_topics, 'topics:')
-    with open(main_folder + 'run_info.pickle', 'wb') as handle:
-        pkl.dump(run_info, handle)
-
-    this_data_folder = top_folder + 'data/' + dataset_name + '/'
-
-    x_train = np.load(this_data_folder + 'train_text_' + str(word2vec_dim) + '.npy')
-    x_test = np.load(this_data_folder + 'test_text_' + str(word2vec_dim) + '.npy')
-
-    x_df_all = np.concatenate([x_train, x_test], axis=0)
-    new_df = []
-    for i in range(x_df_all.shape[0]):
-        temp = []
-        for j in range(x_df_all.shape[1]):
-            temp.append(str(x_df_all[i, j]))
-        xx = ' '.join(temp)
-        new_df.append(xx)
-
-    # new_df = list(data_df_all['headlines'])
-    # new_df = list(data_df_all['title'])
-
-    tfidf_vectorizer = TfidfVectorizer(max_df=0.9, min_df=2, lowercase=False, max_features=n_features,
-                                       stop_words={'english'}, analyzer='word')
-    tfidf = tfidf_vectorizer.fit_transform(new_df)
-
-    with open(main_folder + 'lda_vectorizer_tfidf.pkl', 'wb') as handle:
-        pkl.dump(tfidf_vectorizer.vocabulary_, handle)
-
-    lda_2 = LatentDirichletAllocation(n_components=n_topics, max_iter=n_iter, learning_method='batch',
-                                      learning_offset=50., random_state=0, verbose=1)
-    lda_2.fit(tfidf)
-
-    # with open(main_folder + 'lda_model_tfidf.pkl', 'rb') as handle:
-    #     lda_2 = pkl.load(handle)
-
-    # with open(main_folder + 'lda_vectorizer_tfidf.pkl', 'rb') as handle:
-    #     tfidf_vectorizer = pkl.load(handle)
-
-    with open(main_folder + 'lda_model_tfidf.pkl', 'wb') as handle:
-        pkl.dump(lda_2, handle)
-
-    # tf_feature_names = tfidf_vectorizer.get_feature_names()
-    # if n_topics <= 10:
-    #     plot_name = main_folder + dataset_name + '_lda_topic_tf_' + str(n_topics)
-    #     plot_top_words(lda_2, tf_feature_names, n_top_words, plot_name)
-
-    print('Extracting LDA with tf_idf features ...')
-
-    tr_df = []
-    for i in range(x_train.shape[0]):
-        temp = []
-        for j in range(x_train.shape[1]):
-            temp.append(str(x_train[i, j]))
-        xx = ' '.join(temp)
-        tr_df.append(xx)
-
-    X_train_vec = tfidf_vectorizer.transform(tr_df)
-    X_train_topics = lda_2.transform(X_train_vec)
-
-    te_df = []
-    for i in range(x_test.shape[0]):
-        temp = []
-        for j in range(x_test.shape[1]):
-            temp.append(str(x_test[i, j]))
-        xx = ' '.join(temp)
-        te_df.append(xx)
-    X_test_vec = tfidf_vectorizer.transform(te_df)
-    X_test_topics = lda_2.transform(X_test_vec)
-
-    np.save(main_folder + 'features/lda_tfidf_train', X_train_topics)
-    np.save(main_folder + 'features/lda_tfidf_test', X_test_topics)
+    plt.clf()
+    plt.plot([ee[0] for ee in coherence_u_mass_tr], [ee[1] for ee in coherence_u_mass_tr], 'x-', label='Train')
+    plt.plot([ee[0] for ee in coherence_u_mass_test], [ee[1] for ee in coherence_u_mass_test], 'o-', label='Test')
+    plt.xlabel('Number of topics')
+    plt.ylabel('Coherence')
+    plt.xticks([ee[0] for ee in coherence_u_mass_tr])
+    plt.grid('on')
+    plt.legend()
+    plt.savefig(main_folder + 'lda_cross_validation.png')
 
 
 def new_lda_experiment_gensim(run_info, top_folder):
@@ -267,10 +320,6 @@ def new_lda_experiment_gensim(run_info, top_folder):
     if not os.path.exists(main_folder):
         os.makedirs(main_folder)
     n_topics = run_info['n_topics']
-    n_top_words = run_info['n_top_words']
-    word2vec_dim = run_info['word2vec_dim']
-    n_features = run_info['n_features']
-    n_iter = run_info['n_iter']
     target_column = run_info['target_column']
     dataset_name = run_info['dataset_name']
     word2vec_dim = run_info['word2vec_dim']
@@ -281,11 +330,26 @@ def new_lda_experiment_gensim(run_info, top_folder):
     x_train = pd.read_csv(this_data_folder + 'x_train_' + str(word2vec_dim) + '.csv')
     x_test = pd.read_csv(this_data_folder + 'x_test_' + str(word2vec_dim) + '.csv')
 
+    my_stopwords = list(feature_extraction.text.ENGLISH_STOP_WORDS)
+
+    x_train[target_column] = x_train[target_column].apply(lambda x: ' '.join([w for w in x.split() if w not in my_stopwords]))
+    x_test[target_column] = x_test[target_column].apply(lambda x: ' '.join([w for w in x.split() if w not in my_stopwords]))
+
+    x_train[target_column] = x_train[target_column].apply(lambda x: ' '.join([WordNetLemmatizer().lemmatize(w) for w in x.split()]))
+    x_test[target_column] = x_test[target_column].apply(lambda x: ' '.join([WordNetLemmatizer().lemmatize(w) for w in x.split()]))
+
     # train lda
     data_df_all = x_train.append(x_test, ignore_index=True)
 
     with open(this_data_folder + 'word_index_' + str(word2vec_dim) + '.pkl', 'rb') as handle:
-        word_index = pkl.load(handle)
+        word_index_orig = pkl.load(handle)
+
+    wc = 0
+    word_index = {}
+    for key in word_index_orig:
+        if key not in my_stopwords and len(key) > 2 and key != "n't":
+            word_index[key] = wc
+            wc += 1
 
     dictionary = {}
     for k, v in word_index.items():
@@ -307,52 +371,56 @@ def new_lda_experiment_gensim(run_info, top_folder):
     te_texts = [[word for word in document.split()] for document in te_documents]
     te_corpus = [[(word_index[word], txt.count(word)) for word in txt if word in word_index.keys()] for txt in te_texts]
 
+    model_tfidf = gensim.models.TfidfModel(corpus, normalize=True)
+    corpus_tfidf = model_tfidf[corpus]
+    tr_corpus_tfidf = model_tfidf[tr_corpus]
+    te_corpus_tfidf = model_tfidf[te_corpus]
+
     logging.basicConfig(filename='gensim_qual.log',
                         format="%(asctime)s:%(levelname)s:%(message)s",
                         level=logging.INFO)
 
-    coherence_u_mass_tr = []
-    coherence_u_mass_test = []
-    for k in [2, 5, 10, 32, 50, 64, 100]:
-        print(k)
-        Lda = gensim.models.ldamodel.LdaModel
-        ldamodel = Lda(corpus, num_topics=k, id2word=d, passes=200, iterations=1000, chunksize=10000, eval_every=10)
-        temp_file = os.path.join(main_folder + "lda_model_" + str(k))
-        ldamodel.save(temp_file)
-        # ldamodel = gensim.models.ldamodel.LdaModel.load(main_folder + "lda_model_" + str(k))
+    n_topic_cross_validation(corpus_tfidf, tr_corpus_tfidf, te_corpus_tfidf, d, main_folder)
+    sel = 10
 
-        cm = gensim.models.coherencemodel.CoherenceModel(model=ldamodel, corpus=tr_corpus, dictionary=d, coherence='u_mass')
-        coherence_u_mass_tr.append((k, cm.get_coherence()))
+    ldamodel = gensim.models.ldamodel.LdaModel.load(main_folder + "lda_model_" + str(sel))
 
-        cm2 = gensim.models.coherencemodel.CoherenceModel(model=ldamodel, corpus=te_corpus, dictionary=d, coherence='u_mass')
-        coherence_u_mass_test.append((k, cm2.get_coherence()))
+    with open(os.path.join(main_folder, 'ldamodels/', "lda_model_" + str(sel) + '_topic_words_freq.txt'), 'w') as f:
+        for top in range(sel):
+            topw = ldamodel.get_topic_terms(topicid=top, topn=10)
+            topwords = [(d[i[0]], str(i[1])) for i in topw]
+            f.write("%s\n" % topwords)
 
-    plt.clf()
-    plt.plot([ee[0] for ee in coherence_u_mass_tr], [ee[1] for ee in coherence_u_mass_tr], 'x-', label='Train')
-    plt.plot([ee[0] for ee in coherence_u_mass_test], [ee[1] for ee in coherence_u_mass_test], 'o-', label='Test')
-    plt.xlabel('Number of topics')
-    plt.ylabel('Coherence')
-    plt.xticks([ee[0] for ee in coherence_u_mass_tr])
-    plt.grid('on')
-    plt.legend()
-    plt.savefig(main_folder+'lda_eval_t1.png')
+    if not os.path.exists(os.path.join(main_folder, 'features')):
+        os.mkdir(os.path.join(main_folder, 'features'))
 
-
-    ldamodel = gensim.models.ldamodel.LdaModel.load(main_folder + "lda_model_32")
-
-    tr_gensim = np.array(ldamodel.get_document_topics(tr_corpus))
+    tr_gensim = np.array(ldamodel.get_document_topics(tr_corpus_tfidf))
     lda_features_tfidf_tr = np.zeros([len(tr_gensim), n_topics])
     for i in range(len(tr_gensim)):
         for elem in tr_gensim[i]:
             lda_features_tfidf_tr[i, elem[0]] = elem[1]
     np.save(main_folder + 'features/lda_tfidf_train', lda_features_tfidf_tr)
 
-    te_gensim = np.array(ldamodel.get_document_topics(te_corpus))
+    te_gensim = np.array(ldamodel.get_document_topics(te_corpus_tfidf))
     lda_features_tfidf_te = np.zeros([len(te_gensim), n_topics])
     for i in range(len(te_gensim)):
         for elem in te_gensim[i]:
             lda_features_tfidf_te[i, elem[0]] = elem[1]
     np.save(main_folder + 'features/lda_tfidf_test', lda_features_tfidf_te)
+
+    tr_gensim = np.array(ldamodel.get_document_topics(tr_corpus))
+    lda_features_tfidf_tr = np.zeros([len(tr_gensim), n_topics])
+    for i in range(len(tr_gensim)):
+        for elem in tr_gensim[i]:
+            lda_features_tfidf_tr[i, elem[0]] = elem[1]
+    np.save(main_folder + 'features/lda_train', lda_features_tfidf_tr)
+
+    te_gensim = np.array(ldamodel.get_document_topics(te_corpus))
+    lda_features_tfidf_te = np.zeros([len(te_gensim), n_topics])
+    for i in range(len(te_gensim)):
+        for elem in te_gensim[i]:
+            lda_features_tfidf_te[i, elem[0]] = elem[1]
+    np.save(main_folder + 'features/lda_test', lda_features_tfidf_te)
 
 
 def concat_features(run_info):
@@ -853,8 +921,6 @@ def evaluation_expermient(info):
     plot_pca_tsne(info)
 
 
-
-
 def compute_classifier_results_all_runs(dataset_name):
     plots_path = top_folder + 'Plots/'
     if not os.path.exists(plots_path):
@@ -886,10 +952,10 @@ def main(run_info):
             not os.path.exists(top_folder + 'data/' + dataset_name + '/x_test_' + str(word2vec_dim) + '.csv'):
         new_prepare_data(run_info, top_folder, dataset_address)
 
-    # VAE
-    if not os.path.exists(main_folder + 'features/vae_train.npy') or \
-            not os.path.exists(main_folder + 'features/vae_test.npy'):
-        vae_experiment(run_info, top_folder)
+    # # VAE
+    # if not os.path.exists(main_folder + 'features/vae_train.npy') or \
+    #         not os.path.exists(main_folder + 'features/vae_test.npy'):
+    #     vae_experiment(run_info, top_folder)
 
     # LDA
     if not os.path.exists(main_folder + 'features/lda_tfidf_train.npy') or \
@@ -897,7 +963,8 @@ def main(run_info):
         # lda_experiment(run_info, top_folder)
         # new_lda_experiment(run_info, top_folder)
         new_lda_experiment_gensim(run_info, top_folder)
-
+    print('done')
+    exit(0)
     # LVAE (VAE + LDA): Our method
     if not os.path.exists(main_folder + 'features/lvae_train_vae_lda_tfidf.npy') or \
             not os.path.exists(main_folder + 'features/lvae_test_vae_lda_tfidf.npy'):
@@ -924,17 +991,19 @@ if __name__ == '__main__':
     else:
         dataset_name = exit('Error: You need to specify the dataset name with -d command. \nDatasets choices could be '
                             'Twitter or ISOT or Covid.')
+        dataset_name = 'ISOT'
 
     if '-a' in sys.argv:
         dataset_address = sys.argv[sys.argv.index('-a') + 1]
     else:
         dataset_address = exit('Error: You need to specify the address of top folder contatining both dataset folders '
                                'with -a command, eg. -a "data/".')
+        dataset_address = 'data/'
 
     if '-e' in sys.argv:
         epoch_no = int(sys.argv[sys.argv.index('-e') + 1])
     else:
-        epoch_no = 200
+        epoch_no = 10
 
     if '-t' in sys.argv:
         n_topics = int(sys.argv[sys.argv.index('-t') + 1])

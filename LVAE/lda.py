@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.decomposition import LatentDirichletAllocation
 from collections import Counter
+from nltk.stem import WordNetLemmatizer
 sys.path.append('../')
 np.random.seed(2021)
 

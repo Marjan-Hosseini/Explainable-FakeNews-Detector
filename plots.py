@@ -18,6 +18,19 @@ from matplotlib.transforms import Affine2D
 import gensim
 
 
+def plot_doc_len_hist(lent, folder, dataset_name):
+    log_bins = np.logspace(0, np.log10(max(lent)), base=10, num=50)
+    plt.hist(lent, bins=log_bins)
+    plt.xscale('log')
+    plt.xlabel('Document length (words), logspace', fontdict={'size':15})
+    plt.ylabel('Count', fontdict={'size':15})
+    plt.tight_layout()
+    plt.savefig(os.path.join(folder, dataset_name + '.pdf'))
+    plt.savefig(os.path.join(folder, dataset_name + '.png'))
+    plt.clf()
+    plt.close()
+
+
 def plot_history_independent(top_folder, plots_path, dataset_name):
     runs = [os.path.join(top_folder, dname) for dname in os.listdir(top_folder) if dataset_name in dname]
     for run in runs:
