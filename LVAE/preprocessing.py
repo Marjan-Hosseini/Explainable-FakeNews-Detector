@@ -15,7 +15,7 @@ from nltk.corpus import stopwords
 from sklearn import feature_extraction
 import unidecode
 from nltk.tokenize import word_tokenize
-from imblearn.over_sampling import SMOTEN
+# from imblearn.over_sampling import SMOTEN
 
 
 warnings.filterwarnings('ignore')
